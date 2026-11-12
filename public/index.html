@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#b83212">
+  <meta name="description" content="Reliable notifications for teams that build. Email, SMS, WhatsApp, Telegram, webhooks and in-app delivery in one place.">
+  <title>NotifyHub — Notification operations</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <!-- Sign in / register -->
+  <main id="auth" class="auth hidden">
+    <section class="card auth-card">
+      <div class="brand-lockup"><span class="brand-mark">N</span><div><h1>NotifyHub</h1><p class="muted">Messaging, moving.</p></div></div>
+      <p class="muted">One calm control room for email, SMS, WhatsApp, Telegram, webhooks and in-app delivery.</p>
+      <div class="tabs" id="auth-tabs">
+        <button data-tab="login" class="active">Sign in</button>
+        <button data-tab="register">Create workspace</button>
+      </div>
+      <form id="login-form">
+        <label>Email <input name="email" type="email" required autocomplete="username"></label>
+        <label>Password <input name="password" type="password" required autocomplete="current-password"></label>
+        <button class="link auth-link" type="button" id="forgot-password">Forgot password?</button>
+        <button class="link auth-link" type="button" id="resend-verification">Resend verification email</button>
+        <button class="primary" type="submit">Sign in</button>
+      </form>
+      <form id="register-form" class="hidden">
+        <label>Company name <input name="companyName" required minlength="2" maxlength="100"></label>
+        <label>Email <input name="email" type="email" required autocomplete="username"></label>
+        <label>Password (min 8 characters) <input name="password" type="password" required minlength="8" autocomplete="new-password"></label>
+        <button class="primary" type="submit">Create workspace</button>
+      </form>
+      <form id="reset-request-form" class="hidden">
+        <h2>Reset your password</h2><p class="muted small">Enter your account email. If it matches, we’ll send a reset link.</p>
+        <label>Email <input name="email" type="email" required autocomplete="username"></label>
+        <button class="primary" type="submit">Send reset link</button> <button class="link auth-link" type="button" data-auth-view="login">Back to sign in</button>
+      </form>
+      <form id="reset-complete-form" class="hidden">
+        <h2>Choose a new password</h2>
+        <input type="hidden" name="token">
+        <label>New password <input name="password" type="password" required minlength="8" maxlength="200" autocomplete="new-password"></label>
+        <button class="primary" type="submit">Update password</button> <button class="link auth-link" type="button" data-auth-view="login">Back to sign in</button>
+      </form>
+      <p id="auth-msg" class="msg" role="alert"></p>
+      <div id="auth-action" class="auth-action hidden"></div>
+    </section>
+  </main>
+
+  <!-- Application -->
+  <div id="app" class="hidden">
+    <aside class="sidebar">
+      <a class="brand" href="#dashboard" aria-label="NotifyHub home"><span class="brand-mark">N</span><span>Notify<span>Hub</span><small>MESSAGING OPERATIONS</small></span></a>
+      <p class="nav-caption">WORKSPACE</p>
+      <nav id="nav">
+        <button data-page="dashboard" class="active">Dashboard</button>
+        <button data-page="notifications"><span class="nav-icon">↗</span>Send a message</button>
+        <button data-page="bulk"><span class="nav-icon">▤</span>Bulk email</button>
+        <button data-page="templates"><span class="nav-icon">▧</span>Templates</button>
+        <button data-page="keys">API keys</button>
+        <button data-page="webhooks">Webhooks</button>
+        <button data-page="billing">Plan &amp; billing</button>
+        <button data-page="settings">Rate limits</button>
+      </nav>
+      <div class="sidebar-foot"><span class="status-dot" id="mode-dot"></span><span id="mode-status">Checking delivery providers…</span><div class="who"><span id="who"></span><button id="logout" class="link">Sign out</button></div></div>
+    </aside>
+    <header class="mobilebar"><a class="brand" href="#dashboard"><span class="brand-mark">N</span><span>NotifyHub</span></a><span id="mobile-who"></span><button id="logout-mobile" class="link">Sign out</button></header>
+    <p id="toast" class="toast hidden" role="status"></p>
+
+    <div class="workspace"><main class="page" id="page-dashboard">
+      <div class="page-heading"><div><span class="eyebrow">OVERVIEW</span><h2>Good work starts with a clear signal.</h2><p class="muted">Track delivery health and act on every message.</p></div><button class="primary" data-go="notifications">＋ Send notification</button></div>
+      <h2>Delivery analytics</h2>
+      <form id="filter-form" class="row">
+        <label>From <input type="date" name="from"></label>
+        <label>To <input type="date" name="to"></label>
+        <label>Channel
+          <select name="channel"><option value="">All</option><option>email</option><option>sms</option><option>whatsapp</option><option>telegram</option><option>webhook</option><option>in-app</option></select>
+        </label>
+        <label>Status
+          <select name="status"><option value="">All</option><option value="delivered">Delivered</option><option value="failed">Failed</option><option value="pending">Pending</option></select>
+        </label>
+        <button class="primary" type="submit">Apply</button>
+        <button type="button" id="export-csv">Export CSV</button>
+      </form>
+      <p id="dash-msg" class="msg" role="alert"></p>
+      <div class="cards" id="totals"></div>
+      <div class="grid2">
+        <section class="card"><h3>By channel</h3><div id="by-channel"></div></section>
+        <section class="card"><h3>By day</h3><div id="by-day"></div></section>
+      </div>
+      <p class="muted small" id="refreshed"></p>
+    </main>
+
+    <main class="page hidden" id="page-notifications">
+      <div class="page-heading"><div><span class="eyebrow">MESSAGE COMPOSER</span><h2>Send a notification</h2><p class="muted">Send one tested message through any channel.</p></div><button data-go="bulk">Switch to bulk email ↗</button></div>
+      <section class="card">
+        <form id="send-form">
+          <div class="row">
+            <label>Channel
+              <select name="channel" id="send-channel"><option>email</option><option>sms</option><option>whatsapp</option><option>telegram</option><option>webhook</option><option>in-app</option></select>
+            </label>
+            <label>Template <select name="template_id" id="send-template"></select></label>
+            <label class="grow">Recipient <input name="recipient" id="send-recipient" placeholder="user@example.com" required></label>
+          </div>
+          <label>Payload (JSON, values for the template placeholders)
+            <textarea name="payload" rows="3">{"name": "Asha"}</textarea>
+          </label>
+          <div class="variable-panel"><strong>Template variables</strong><div id="send-vars" class="variable-fields"></div></div>
+          <button class="primary" type="submit">Send</button>
+        </form>
+        <p class="muted small">Tip: use <code>flaky@example.com</code> or <code>fail@example.com</code> as the recipient to watch retries.</p>
+        <pre id="send-result" class="result hidden"></pre>
+      </section>
+      <h2>Recent notifications <button class="link" id="reload-notes">Reload</button></h2>
+      <table class="table"><thead><tr><th>Created</th><th>Channel</th><th>Recipient</th><th>Status</th><th>Attempts</th><th></th></tr></thead><tbody id="notes"></tbody></table>
+      <pre id="note-detail" class="result hidden"></pre>
+    </main>
+
+    <main class="page hidden" id="page-templates">
+      <div class="page-heading"><div><span class="eyebrow">REUSABLE CONTENT</span><h2>Templates</h2><p class="muted">Versioned, channel-aware messages that keep every send consistent.</p></div><button class="primary" id="starter-templates">＋ Add 15 starter templates</button></div>
+      <div id="starter-msg" class="callout hidden" role="status"></div>
+      <section class="card">
+        <form id="tpl-form">
+          <input type="hidden" name="id">
+          <div class="row">
+            <label>Name <input name="name" required maxlength="100"></label>
+            <label>Channel
+              <select name="channel"><option>email</option><option>sms</option><option>whatsapp</option><option>telegram</option><option>webhook</option><option>in-app</option></select>
+            </label>
+          </div>
+          <label>Subject (required for email) <input name="subject" maxlength="300" placeholder="Hello {{name}}"></label>
+          <label>Body <textarea name="body" rows="4" required placeholder="Hi {{name}}, your code is {{code}}"></textarea></label>
+          <div class="variable-panel"><strong>Variables in this template</strong><div id="tpl-vars" class="variable-chips"></div><p class="muted small">Variables update as you edit the subject or body.</p></div>
+          <button class="primary" type="submit" id="tpl-submit">Create template</button>
+          <button type="button" id="tpl-cancel" class="hidden">Cancel edit</button>
+        </form>
+      </section>
+      <table class="table"><thead><tr><th>Name</th><th>Channel</th><th>Version</th><th>Placeholders</th><th>Status</th><th></th></tr></thead><tbody id="tpls"></tbody></table>
+    </main>
+
+    <main class="page hidden" id="page-bulk">
+      <div class="page-heading"><div><span class="eyebrow">CAMPAIGN COMPOSER</span><h2>Bulk email</h2><p class="muted">Send one personalized template to a list. Invalid addresses are reported individually.</p></div></div>
+      <section class="card composer-card"><form id="bulk-form">
+        <div class="form-grid"><label>Email template<select name="template_id" id="bulk-template" required></select></label><label>Shared payload (JSON)<textarea name="payload" rows="3">{"event": "NotifyHub Live", "date": "November 14", "venue": "Innovation Lab"}</textarea></label></div>
+        <div class="variable-panel"><strong>Selected template variables</strong><div id="bulk-vars" class="variable-fields"></div></div>
+        <label>Recipients <span class="muted">One email per line · add a name after a comma or tab for personalization · maximum 1,000</span><textarea name="recipients" rows="7" placeholder="asha@example.com, Asha&#10;team@example.com&#9;Build Team&#10;security@example.com" required></textarea></label>
+        <div class="row"><span class="muted small">Personalize per person with {{name}}; shared values come from the JSON above.</span><button class="primary" type="submit">Queue bulk email</button></div>
+      </form><p id="bulk-summary" class="msg" role="status"></p><pre id="bulk-result" class="result hidden"></pre></section>
+    </main>
+
+    <main class="page hidden" id="page-keys">
+      <h2>API keys</h2>
+      <section class="card">
+        <form id="key-form" class="row"><label class="grow">Key name <input name="name" placeholder="Production backend" maxlength="60"></label><button class="primary" type="submit">Create key</button></form>
+        <div id="new-key" class="callout hidden"></div>
+        <p class="muted small">Use a key like this: <code>Authorization: Bearer nh_...</code></p>
+      </section>
+      <table class="table"><thead><tr><th>Name</th><th>Prefix</th><th>Created</th><th>Last used</th><th></th></tr></thead><tbody id="keys"></tbody></table>
+    </main>
+
+    <main class="page hidden" id="page-webhooks">
+      <h2>Webhooks</h2>
+      <section class="card">
+        <form id="hook-form" class="row"><label class="grow">Endpoint URL <input name="url" type="url" required placeholder="https://example.com/notifyhub"></label><button class="primary" type="submit">Add endpoint</button></form>
+        <p class="small">Signing secret: <code id="hook-secret"></code></p>
+        <p class="muted small">Every status change is sent as a POST with the header <code>X-NotifyHub-Signature: sha256=HMAC(secret, body)</code>. Failed deliveries are retried 3 times.</p>
+      </section>
+      <table class="table"><thead><tr><th>Endpoint</th><th>Added</th><th></th></tr></thead><tbody id="hooks"></tbody></table>
+      <h3>Recent delivery attempts <button class="link" id="reload-attempts">Reload</button></h3>
+      <table class="table"><thead><tr><th>When</th><th>Endpoint</th><th>Attempt</th><th>Result</th></tr></thead><tbody id="attempts"></tbody></table>
+    </main>
+
+    <main class="page hidden" id="page-billing">
+      <h2>Plan &amp; billing</h2>
+      <section class="card" id="plan-card"></section>
+      <section class="card hidden" id="checkout-card">
+        <h3>Checkout (test mode)</h3>
+        <form id="pay-form">
+          <label>Test card number <input name="cardNumber" value="4242 4242 4242 4242" inputmode="numeric" autocomplete="off"></label>
+          <p class="muted small">4242 4242 4242 4242 succeeds. 4000 0000 0000 0002 is declined. No real money is involved.</p>
+          <button class="primary" type="submit">Pay and upgrade</button>
+          <button type="button" id="pay-cancel">Cancel</button>
+        </form>
+      </section>
+      <h3>Billing events</h3>
+      <table class="table"><thead><tr><th>When</th><th>Event</th><th>Detail</th></tr></thead><tbody id="events"></tbody></table>
+    </main>
+
+    <main class="page hidden" id="page-settings">
+      <section class="card"><h2>Delivery providers</h2><p class="muted">Real delivery requires the provider credentials in your local <code>.env</code>. Secrets are never shown here.</p><div id="provider-status" class="provider-status-grid"></div></section>
+      <h2>Rate limits</h2>
+      <p class="muted">Maximum notifications sent per minute for each channel. Requests above the limit are held and sent in the next window, never dropped.</p>
+      <table class="table"><thead><tr><th>Channel</th><th>Per minute</th><th></th></tr></thead><tbody id="limits"></tbody></table>
+    </main>
+    </div>
+  </div>
+  <script src="/app.js"></script>
+</body>
+</html>

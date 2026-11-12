@@ -1,0 +1,51 @@
+# One command: docker compose up --build   ->   http://localhost:3000
+# Starts PostgreSQL, the API and a separate worker process (scale workers with: docker compose up --scale worker=3).
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: notifyhub
+      POSTGRES_PASSWORD: notifyhub
+      POSTGRES_DB: notifyhub
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U notifyhub -d notifyhub"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  api:
+    build: .
+    image: notifyhub:local
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "3000:3000"
+    environment: &app-env
+      NODE_ENV: ${NODE_ENV:-development}
+      DATABASE_URL: postgres://notifyhub:notifyhub@db:5432/notifyhub
+      JWT_SECRET: ${JWT_SECRET:-change-me-before-going-public}
+      ADMIN_TOKEN: ${ADMIN_TOKEN:-change-me-too}
+      PROVIDER_CALLBACK_SECRET: ${PROVIDER_CALLBACK_SECRET:-change-me-three}
+      EMBEDDED_WORKER: "false"
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://localhost:3000}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
+
+  worker:
+    image: notifyhub:local
+    command: ["node", "--disable-warning=ExperimentalWarning", "src/worker.js"]
+    depends_on:
+      db:
+        condition: service_healthy
+      api:
+        condition: service_started
+    environment: *app-env
+
+volumes:
+  pgdata:

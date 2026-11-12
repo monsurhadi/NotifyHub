@@ -1,0 +1,24 @@
+{
+  "name": "notifyhub",
+  "version": "1.0.0",
+  "description": "NotifyHub - multi-tenant notification orchestration platform (OOP, queue + worker, DevOps ready)",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node --disable-warning=ExperimentalWarning src/server.js",
+    "dev": "node --disable-warning=ExperimentalWarning --watch src/server.js",
+    "worker": "node --disable-warning=ExperimentalWarning src/worker.js",
+    "test": "node --disable-warning=ExperimentalWarning --test --test-concurrency=1 \"test/*.test.js\"",
+    "demo": "node scripts/demo.js"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.22.3",
+    "nodemailer": "^10.1.0",
+    "pg": "^8.23.1",
+    "undici": "^7.30.1"
+  },
+  "private": true,
+  "engines": {
+    "node": ">=22.13"
+  }
+}
